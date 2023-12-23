@@ -1,4 +1,4 @@
-use std::{fs::File, io::Write};
+use std::{fs::File, io::Write, ops::BitAnd};
 
 use image::{io::Reader as ImageReader, DynamicImage, EncodableLayout};
 use swizzle_3ds::swizzle_in_place;
@@ -36,16 +36,21 @@ fn main() {
     swizzle_in_place(&mut img);
 
     let mut outfile = File::create(output).unwrap();
-    let bytes = img
+    let mut bytes = img
         .to_rgba8()
         .pixels()
         .flat_map(|px| px.0.iter().copied().rev())
         .collect::<Vec<_>>();
-    outfile
-        .write_all(&compression_header(
-            CompressionType::None,
-            bytes.len().try_into().expect("couldn't fit bytes into u32"),
-        ))
-        .unwrap();
-    outfile.write_all(&bytes).unwrap();
+    let mut output = compression_header(
+        CompressionType::None,
+        bytes.len().try_into().expect("couldn't fit bytes into u32"),
+    );
+    output.append(&mut bytes);
+
+    // pad to 4 bytes
+    if output.len() % 4 != 0 {
+        output.resize(output.len() + (output.len() % 4), 0);
+    }
+
+    outfile.write_all(&output).unwrap();
 }
