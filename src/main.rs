@@ -32,12 +32,15 @@ fn main() {
     let input = &args[1];
     let output = &args[2];
 
-    let mut img = ImageReader::open(input).unwrap().decode().unwrap();
+    let mut img = ImageReader::open(input)
+        .unwrap()
+        .decode()
+        .unwrap()
+        .to_rgba8();
     swizzle_in_place(&mut img);
 
     let mut outfile = File::create(output).unwrap();
     let mut bytes = img
-        .to_rgba8()
         .pixels()
         .flat_map(|px| px.0.iter().copied().rev())
         .collect::<Vec<_>>();
