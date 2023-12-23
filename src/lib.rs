@@ -27,8 +27,8 @@ pub fn swizzle_tile(tile: &mut impl GenericImage) {
 }
 
 pub fn swizzle_in_place(img: &mut impl GenericImage) {
-    assert_eq!(img.width(), img.height());
     assert!(img.width().is_power_of_two());
+    assert!(img.height().is_power_of_two());
     assert_eq!(img.width() % 8, 0);
     assert_eq!(img.height() % 8, 0);
 
