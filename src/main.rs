@@ -1,7 +1,7 @@
 use std::{fs::File, io::Write, ops::BitAnd};
 
-use image::{io::Reader as ImageReader, DynamicImage, EncodableLayout};
-use swizzle_3ds::swizzle_in_place;
+use image::{io::Reader as ImageReader, DynamicImage, EncodableLayout, ImageBuffer};
+use swizzle_3ds::{swizzle_in_place, to_texture};
 
 enum CompressionType {
     None,
@@ -28,6 +28,13 @@ fn compression_header(ty: CompressionType, data_sz: u32) -> Vec<u8> {
 }
 
 fn main() {
+    /*let img = ImageBuffer::from_fn(16, 8, |x, y| image::Luma([(x + y * 16) as u8]));
+    img.write_to(
+        &mut File::create("outfile.bmp").unwrap(),
+        image::ImageOutputFormat::Bmp,
+    )
+    .unwrap();*/
+
     let args = std::env::args().collect::<Vec<_>>();
     let input = &args[1];
     let output = &args[2];
@@ -40,8 +47,9 @@ fn main() {
     swizzle_in_place(&mut img);
 
     let mut outfile = File::create(output).unwrap();
-    let mut bytes = img
-        .pixels()
+    let tex = to_texture(&img);
+    let mut bytes = tex
+        .iter()
         .flat_map(|px| px.0.iter().copied().rev())
         .collect::<Vec<_>>();
     let mut output = compression_header(
