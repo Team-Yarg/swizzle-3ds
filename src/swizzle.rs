@@ -1,6 +1,4 @@
-use std::ops::DerefMut;
-
-use image::{DynamicImage, GenericImage, GenericImageView, ImageBuffer, Pixel};
+use image::{DynamicImage, GenericImageView, ImageBuffer, Pixel};
 
 const TILE_IDX_REMAP: [usize; 64] = [
     0x00, 0x01, 0x08, 0x09, 0x02, 0x03, 0x0A, 0x0B, 0x10, 0x11, 0x18, 0x19, 0x12, 0x13, 0x1A, 0x1B,
@@ -15,17 +13,6 @@ fn check_image_requirements(img: &impl GenericImageView) {
     assert!(img.height().is_power_of_two());
     assert_eq!(img.width() % 8, 0);
     assert_eq!(img.height() % 8, 0);
-}
-
-fn swizzle_in_place(img: &mut impl GenericImage) {
-    check_image_requirements(img);
-
-    for x in (0..img.width()).step_by(8) {
-        for y in (0..img.height()).step_by(8) {
-            let mut tile = img.sub_image(x, y, 8, 8);
-            swizzle_tile(tile.deref_mut());
-        }
-    }
 }
 
 struct SwizzleIter<'a, P> {
@@ -57,21 +44,6 @@ impl<'a, P: Copy> Iterator for SwizzleIter<'a, P> {
             }
             Some(px)
         }
-    }
-}
-
-/// swizzle an 8x8 tile
-fn swizzle_tile(tile: &mut impl GenericImage) {
-    assert_eq!(tile.width(), 8);
-    assert_eq!(tile.height(), 8);
-    let pixels: [_; 64] = {
-        let mut iter = tile.pixels();
-        core::array::from_fn(|_| iter.next().unwrap().2)
-    };
-    for (i, px) in SwizzleIter::new(&pixels, tile.width() as usize).enumerate() {
-        let x = i as u32 % tile.width();
-        let y = i as u32 / tile.width();
-        tile.put_pixel(x, y, px);
     }
 }
 
@@ -110,11 +82,37 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::ops::Deref;
+    use std::ops::{Deref, DerefMut};
 
-    use image::{GenericImageView, ImageBuffer, Rgba, RgbaImage};
+    use image::{GenericImage, GenericImageView, ImageBuffer, Rgba, RgbaImage};
 
     use super::*;
+
+    fn swizzle_in_place(img: &mut impl GenericImage) {
+        check_image_requirements(img);
+
+        for x in (0..img.width()).step_by(8) {
+            for y in (0..img.height()).step_by(8) {
+                let mut tile = img.sub_image(x, y, 8, 8);
+                swizzle_tile(tile.deref_mut());
+            }
+        }
+    }
+
+    /// swizzle an 8x8 tile
+    fn swizzle_tile(tile: &mut impl GenericImage) {
+        assert_eq!(tile.width(), 8);
+        assert_eq!(tile.height(), 8);
+        let pixels: [_; 64] = {
+            let mut iter = tile.pixels();
+            core::array::from_fn(|_| iter.next().unwrap().2)
+        };
+        for (i, px) in SwizzleIter::new(&pixels, tile.width() as usize).enumerate() {
+            let x = i as u32 % tile.width();
+            let y = i as u32 / tile.width();
+            tile.put_pixel(x, y, px);
+        }
+    }
 
     fn mk_img(w: u32, h: u32) -> RgbaImage {
         ImageBuffer::from_fn(w, h, |x, y| image::Rgba([(x + y * w) as u8, 0, 0, 0]))

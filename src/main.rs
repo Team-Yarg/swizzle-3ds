@@ -1,13 +1,6 @@
-use std::{
-    fs::File,
-    io::{BufWriter, Write},
-    ops::BitAnd,
-};
+use std::{fs::File, io::BufWriter};
 
-use image::{
-    io::Reader as ImageReader, DynamicImage, EncodableLayout, GenericImage, GenericImageView,
-    ImageBuffer, ImageEncoder,
-};
+use image::io::Reader as ImageReader;
 use swizzle_3ds::{encode, swizzle_image};
 
 fn main() {

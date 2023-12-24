@@ -1,6 +1,6 @@
 use std::io::Write;
 
-use image::{error::EncodingError, ImageEncoder, ImageError};
+use image::{error::EncodingError, ImageEncoder};
 
 #[derive(Debug, Clone, Copy)]
 enum CompressionType {
